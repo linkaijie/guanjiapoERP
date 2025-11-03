@@ -1,0 +1,136 @@
+1.0 验证
+请求URL
+• Service/GetToken
+
+请求方式
+• POST
+
+参数：
+参数名	类型	必填	说明
+StaffId	string	true	操作员ID （可传任意值）
+Sign	string	true	公司标识（可以为公司ID 注：唯一标识符）
+返回示例
+  {
+    "Success": true,
+    "Info": "",
+"Data": {
+"StaffId":"",
+"SignToken":"",
+"ExpireTime":""
+    }
+}
+返回参数说明
+参数名	类型	说明
+Success	bool	是否成功
+Info	string	提示信息
+Data	object	返回的数据
+StaffId	string	用户id
+SignToken	string	签名token
+ExpireTime	string	过期时间
+注：Token有效时间为30天 Token缓存IIS,API更新后需要重新请求
+
+接口访问请求头
+请求头	类型	说明
+staffid	string	GetToken接口所返回的StaffId
+timestamp	string	时间戳(精确到毫秒)
+nonce	string	随机数(10位长度内任意数字)
+signature	string	签名(计算方式如下)
+linktype	string	数据库链接传入方案:0或不传入时:下方的linkstr字段正常传入加密字符串，且不必传入urladdr字段；为1的时候：linkstr字段传入非加密的数据库名称及传入urladdr字段；
+linkstr	string	需要base64编译链接（链接：server=地址;uid=账号;pwd=密码;database=数据库名称）注意：先确定相关数据库能外网访问。地址存在端口则用“,”取代“:
+urladdr	string	访问地址 例：http://域名或外网ip/虚拟目录名
+请求头示例		
+签名计算方式：
+第一步：将 时间戳、随机数、GetToken接口所返回StaffId、token按顺序拼接；
+
+第二步：将第一步拼接字符串内字符按升序排序；
+
+第三步：将排序字符串编码为一个字节序列；
+
+第四步：使用MD5加密直接序列；
+
+第五步：将加密结果转换为十六进制字符串；
+
+第六步：将字符串转换为大写格式；
+
+
+timestamp     时间戳(当前时间戳，精确到毫秒)
+
+nonce         随机数（接口调用方随机生成）
+
+staffId       (使用GetToken接口所返回StaffId)
+
+SignToken     token（GetToken接口返回token）
+
+以上四个参数用于下列计算
+
+以下为C#后端签名计算方式
+
+            var hash = System.Security.Cryptography.MD5.Create();
+
+            //拼接签名数据
+
+            var signStr = timeStamp +nonce+ staffId + SignToken;
+
+            //将字符串中字符按升序排序
+
+            var sortStr = string.Concat(signStr.OrderBy(c => c));
+
+            var bytes = Encoding.UTF8.GetBytes(sortStr);
+
+            //使用MD5加密
+
+            var md5Val = hash.ComputeHash(bytes);
+
+            //转化为十六进制
+
+            StringBuilder result = new StringBuilder();
+
+            foreach (var c in md5Val)
+
+            {
+
+                result.Append(c.ToString("X2"));
+
+            }
+
+            //返回字符串转化为大写形式
+
+            return result.ToString().ToUpper();
+以下为JAVA后端签名计算方式
+以下为JAVA后端签名计算方式
+Try
+{
+var signStr = timeStamp +nonce+ staffId + SignToken;
+var sortStr = sort(signStr);
+var bytes = sortStr.getBytes("utf-8");
+var md5 = MessageDigest.getInstance("MD5");
+var messageDigest = md5.digest(bytes);
+var no = new BigInteger(1, messageDigest);
+var hashtext = no.toString(16).toUpperCase();
+while (hashtext.length() < 32) {
+hashtext = "0" + hashtext;
+}
+return hashtext;
+}
+catch(Exception ex) 
+{
+}
+
+public static String sort(String s){
+var str = new char[s.length()];
+for (int i = 0; i < s.length(); i++) {
+str[i] = s.charAt(i);
+}
+Arrays.sort(str);
+var s1 = new StringBuilder();
+for (char c : str) {
+s1.append(c);
+}
+return s1.toString();
+}
+返回参数说明
+参数名	类型	说明
+Success	bool	是否成功
+Code	int	4002:请求参数不完整 4003:请求token失效 4006:请求不合法，请求参数可能被篡改
+Info	string	错误信息
+Data	object	返回的数据
